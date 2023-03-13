@@ -1,30 +1,43 @@
 import dotenv from 'dotenv';
-dotenv.config();
 import express from 'express';
-import mongoose from 'mongoose';
-import url from 'url';
-import path from 'path';
+dotenv.config();
+import { MongoClient } from 'mongodb';
 
-
-const app = express();
-
-const __filename = url.fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-app.use(express.urlencoded({ extended: true }));
-
+let dbConnection;
 
 async function connect() {
   try {
-    await mongoose.connect(process.env.URI);
+    const client =  await MongoClient.connect(process.env.URI);
+    dbConnection = client.db('ShitShat');
     console.log("Connected to MongoDB");
   } catch (error) {
     console.error(error);
   };
 }
-
 connect();
 
+const app = express();
+
+app.use(express.urlencoded({ extended: true }));
+
+app.get("/users", (req, res) => {
+
+  dbConnection.collection("users")
+    .find()
+    .toArray()
+    .then((users) => {
+      res.status(200).json(users);
+    });
+});
+
+app.post("/users", (req, res) => {
+
+  dbConnection.collection("users")
+    .insertOne(req.body)
+    .then(() => {
+      res.status(200).json({mssg: "User added"})
+    })
+});
 
 app.listen(process.env.PORT, () => {
   console.log("Server is running..");
